@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Cellular Automata</title>
+	</head>
+	<style>
+		body{
+			display:flex;
+		}
+		#buttonbar{
+			display:flex;
+			flex-direction:row;
+		}
+		#buttonbar button{
+			flex-grow:1;
+		}
+	</style>
+	<script>
+		var animation;
+		window.onload=function(){
+			var canvas=document.getElementById("canvas");
+			canvas.addEventListener("click", doclick);
+			var controls=document.getElementById("controls");
+			if(window.innerWidth>window.innerHeight){ //landscape mode
+				canvas.width=window.innerWidth/2;
+				canvas.height=window.innerHeight;
+				controls.style.width="50%";
+				//controls.style.width=window.innerWidth/2;
+				//controls.style.height=window.innerHeight;
+				document.body.style.flexDirection="row";
+			}else{
+				canvas.width=window.innerWidth;
+				canvas.height=window.innerHeight/2;
+				controls.style.height="50%";
+				//controls.style.width=window.innerWidth;
+				//controls.style.height=window.innerHeight/2;
+				document.body.style.flexDirection="column";
+			}
+			draw();
+		}
+		var size=parseInt(prompt("Grid size?", "40"));
+		var state=Array.from(Array(size), () => Array.from({length:size}, () => 0));
+		function erase(){
+			for(var y=0; y<size; y++){
+				for(var x=0; x<size; x++){
+					state[y][x]=0;
+				}
+			}
+			draw();
+		}
+		function randomize(){
+			var lowerBound=parseFloat(prompt("Lower bound?", "0"));
+			var upperBound=parseFloat(prompt("Upper bound", "1"));
+			var integer=confirm("Whole numbers only?");
+			for(var y=0; y<size; y++){
+				for(var x=0; x<size; x++){
+					if(integer){
+						state[y][x]=Math.round(Math.random()*(upperBound-lowerBound)+lowerBound);
+					}else{
+						state[y][x]=Math.random()*(upperBound-lowerBound)+lowerBound;
+					}
+				}
+			}
+			draw();
+		}
+		function sign(num){
+			if(num>0){
+				return 1;
+			}else if(num==0){
+				return 0;
+			}else if(num<0){
+				return -1;
+			}
+		}		
+		function color(val){
+			var r=0;
+			var g=0;
+			var b=0;
+			var h=0;
+			var s=0;
+			var l=0;
+			var col;
+			/* the HSL rainbow method
+			h=sign(val)*Math.log2(Math.abs(val)+1)*180;
+			s=50-Math.cos(val*Math.PI/4)*30;
+			if(val<1&&val>0){
+			l=Math.abs(val)*100;
+			}else if(val<0){
+			l=20;
+			s=100;
+			}else{
+			l=50+(50/(val));
+			}
+			var col="hsl("+h+", "+s+"%, "+l+"%)";
+			*/
+			if(val>=0){
+			r=Math.abs(val)%2*255/1;
+			}else{
+			r=128;
+			}
+			g=Math.abs(val)%7*255/7;
+			b=Math.abs(val)%29*255/29;
+			col="rgb("+r+", "+g+", "+b+")";
+			//console.log(col);
+			return col;
+			//return "hsl("+h+", "+s+", "+v+")";
+
+		}
+		function update(){
+			var nstate=Array.from(Array(size), () => Array.from({length:size}, () => 0)); //process the array
+			for(var x=0; x<size; x++){
+				for(var y=0; y<size; y++){
+					var input=document.getElementById("rule").value;
+					if(x>0&&x<size-1&&y>0&&y<size-1){ // if no edgesies
+						eval(input);
+					}else{ // if edgesies, just copy it
+						nstate[y][x]=state[y][x];
+					}
+				}
+			}
+			for(var y=0; y<size; y++){ //copy dat array
+				for(var x=0; x<size; x++){
+					state[y][x]=nstate[y][x];
+				}
+			}
+			draw();
+			}
+		function doclick(event){
+			var canvas=document.getElementById("canvas");
+			var w=canvas.width;
+			var h=canvas.height;
+			var x=Math.floor(event.offsetX*size/w);
+			var y=Math.floor(event.offsetY*size/h);
+			state[y][x]++;
+			draw();
+		}
+		function draw(){
+			var canvas=document.getElementById("canvas");
+			var w=canvas.width;
+			var h=canvas.height;
+			var context=canvas.getContext("2d");
+			context.fillStyle="#ffffff";
+			context.fillRect(0, 0, w, h);
+			for(var y=0; y<size; y++){
+				for(var x=0; x<size; x++){
+					context.fillStyle="white";
+					context.fillRect(x*w/size, y*h/size, w/size, h/size);
+					context.fillStyle=color(state[y][x]);
+					context.fillRect(x*w/size+0.2, y*h/size+0.2, w/size-0.4, h/size-0.4);
+
+				}
+			}
+		}
+		function movie(){
+			animation=setInterval(update, 200);
+		}
+		function stop(){
+			if(animation){
+				clearInterval(animation);
+			}
+		}
+	</script>
+	<body>
+		<canvas id="canvas" width="800" height="800"></canvas>
+		<div id="controls">
+			<textarea id="rule" style="width:100%; height:90%">
+//click on a cell to add 1 to its state
+//use the 2D array, state[y][x] to retrieve values
+//put those values into nstate[y][x]
+//you can use x or y + or - 1 to access neighbors
+//Conway's game of life
+var neighbors=0;
+neighbors+=state[y-1][x-1];
+neighbors+=state[y-1][x];
+neighbors+=state[y-1][x+1];
+neighbors+=state[y][x-1];
+neighbors+=state[y][x+1];
+neighbors+=state[y+1][x-1];
+neighbors+=state[y+1][x];
+neighbors+=state[y+1][x+1];
+if(state[y][x]){
+ if(neighbors<2){ //underpopulation
+  nstate[y][x]=0;
+ }else if(neighbors>3){ //overpopulation
+  nstate[y][x]=0;
+ }else{
+  nstate[y][x]=1;
+ }
+}else{
+ if(neighbors==3){
+  nstate[y][x]=1;
+ }
+}
+			</textarea>
+			<div id="buttonbar" style="width:100% height:10%">
+				<button onclick="update();">Process</button>
+				<button onclick="movie();">Animate</button>
+				<button onclick="stop();">Stop</button>
+				<button onclick="erase();">Clear</button>
+				<button onclick="randomize();">Randomize</button>
+			</div>
+		</div>
+	</body>
+</html>
